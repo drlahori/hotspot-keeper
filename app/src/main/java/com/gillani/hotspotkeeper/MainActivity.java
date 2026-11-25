@@ -135,7 +135,7 @@ public class MainActivity extends Activity {
         if (!run) { light.setTextColor(Color.GRAY); status.setText("Keeper is off"); }
         else if (!hs) { light.setTextColor(Color.rgb(90, 140, 255)); status.setText("Waiting for hotspot"); }
         else if (net == null) { light.setTextColor(Color.rgb(255, 190, 0)); status.setText("Hotspot on • checking…"); }
-        else if (net) { light.setTextColor(Color.rgb(40, 200, 90)); status.setText("Hotspot on • internet OK"); }
+        else if (net) { light.setTextColor(Color.rgb(40, 200, 90)); status.setText("Hotspot on • internet OK (" + KeeperService.upstream + ")"); }
         else { light.setTextColor(Color.rgb(240, 60, 60)); status.setText("Hotspot on • NO internet"); }
 
         boolean perm = checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED;

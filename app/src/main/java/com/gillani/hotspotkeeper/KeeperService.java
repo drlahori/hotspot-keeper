@@ -147,7 +147,7 @@ public class KeeperService extends Service {
             internetOk = true;
             fails = 0;
             if (alerted) { cancelAlert(); alerted = false; }
-            updateStatus("Hotspot on • internet OK • keeping link awake");
+            updateStatus("Hotspot on • internet OK via " + upstream + " • keeping link awake");
         } else {
             fails++;
             if (fails == 1) Log.add(this, "Internet check failed");
@@ -227,19 +227,38 @@ public class KeeperService extends Service {
         } catch (Exception ignored) { }
     }
 
-    /** Checks the mobile-data network itself (what the hotspot shares) reaches the internet. */
+    static volatile String upstream = null;
+
+    /**
+     * Checks that the connection the hotspot is sharing reaches the internet.
+     * The phone's default network (Wi-Fi or mobile data) is tried first, then mobile data.
+     */
     private boolean checkInternet() {
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
-        Network cell = null;
+        java.util.List<Network> candidates = new java.util.ArrayList<>();
+        Network active = cm.getActiveNetwork();
+        if (active != null) candidates.add(active);
         for (Network n : cm.getAllNetworks()) {
             NetworkCapabilities nc = cm.getNetworkCapabilities(n);
             if (nc != null && nc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-                    && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
-                cell = n;
-                break;
+                    && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && !n.equals(active)) {
+                candidates.add(n);
             }
         }
-        if (cell == null) return false;
+        for (Network n : candidates) {
+            if (probe(n)) {
+                NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+                upstream = nc == null ? "?" : nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ? "Wi-Fi"
+                        : nc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ? "mobile data" : "other";
+                return true;
+            }
+        }
+        upstream = null;
+        return false;
+    }
+
+    private boolean probe(Network cell) {
         String[] urls = {
                 "http://connectivitycheck.gstatic.com/generate_204",
                 "http://cp.cloudflare.com/generate_204"
